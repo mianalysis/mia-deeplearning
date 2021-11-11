@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>MIA_DeepLearning</artifactId>
+    <groupId>io.github.mianalysis</groupId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <dependency.locations.selected>false</dependency.locations.selected>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <scp>compile</scp>
+        <license.licenseName>GNU General Public License v3+</license.licenseName>
+        <license.copyrightOwners>Stephen Cross</license.copyrightOwners>
+    </properties>
+
+    <repositories>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+
+        <repository>
+			<id>scijava.public</id>
+			<url>https://maven.scijava.org/content/groups/public</url>
+		</repository>
+    </repositories>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.github.stardist</groupId>
+            <artifactId>stardist-imagej</artifactId>
+            <version>master</version>
+            <scope>${scp}</scope>
+        </dependency>
+		
+		<dependency>
+			<groupId>de.csbdresden</groupId>
+			<artifactId>csbdeep</artifactId>
+			<version>0.6.0</version>
+            <scope>${scp}</scope>
+		</dependency>
+
+        <dependency>
+            <!-- <groupId>com.github.mianalysis</groupId>
+            <artifactId>mia</artifactId>
+            <version>0.21.3-SNAPSHOT</version>
+            <scope>${scp}</scope> -->
+            <groupId>io.github.mianalysis</groupId>
+            <artifactId>mia</artifactId>
+            <version>0.21.3-SNAPSHOT</version>
+            <scope>${scp}</scope>
+        </dependency>
+    </dependencies>
+</project>
