@@ -140,7 +140,7 @@ public class StarDistDetection extends Module {
     }
 
     public String getDescription() {
-        return "";
+        return "Implements the StarDist plugin to detect objects.  For more information on StarDist please see <a href=\"https://imagej.net/plugins/stardist\">https://imagej.net/plugins/stardist</a>.";
     }
 
     File getModelFile(@Nullable HashMap<String, Object> paramsCNN) {
