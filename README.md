@@ -7,7 +7,7 @@ Installation
 ------------
 1. Download the version of MIA_DeepLearning, corresponding to your copy of MIA, from the [Releases](https://github.com/mianalysis/mia_deeplearning/releases) page
 2. Place this .jar file into the /plugins directory of the your Fiji installation
-3. Install CSBDeep and StarDist from the Fiji [Updater](https://imagej.net/Updater) tool 
+3. Install CSBDeep and StarDist from the ImageJ [Updater](https://imagej.net/Updater) tool 
 
 Usage
 -----
@@ -15,7 +15,7 @@ MIA_DeepLearning will add various modules to MIA.  These can be accessed in the 
 
 Acknowledgements
 ----------------
-This plugin currently relies on the [CSBDeep](https://imagej.net/plugins/csbdeep) and [StarDist](https://imagej.net/plugins/stardist) plugins for Fiji.
+This plugin currently relies on the [CSBDeep](https://imagej.net/plugins/csbdeep) and [StarDist](https://imagej.net/plugins/stardist) plugins for ImageJ.
 
 Note
 ----
