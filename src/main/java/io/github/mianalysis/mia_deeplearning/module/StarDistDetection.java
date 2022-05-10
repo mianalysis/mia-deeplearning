@@ -20,6 +20,7 @@ import org.scijava.plugin.Plugin;
 
 import de.csbdresden.stardist.Candidates;
 import de.csbdresden.stardist.Opt;
+import de.csbdresden.stardist.StarDist2D;
 import de.csbdresden.stardist.StarDist2DModel;
 import de.csbdresden.stardist.Utils;
 import ij.ImagePlus;
