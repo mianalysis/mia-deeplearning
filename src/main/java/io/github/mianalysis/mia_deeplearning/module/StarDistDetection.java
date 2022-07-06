@@ -249,6 +249,7 @@ public class StarDistDetection extends Module {
         paramsNMS.put("verbose", false);
         paramsNMS.put("outputType", Opt.OUTPUT_POLYGONS);
 
+        for (int t = 0; t < ipl.getNFrames(); t++) {
         for (int z = 0; z < ipl.getNSlices(); z++) {
             Module.writeProgressStatus((z + 1), ipl.getNSlices(), "slices", "StarDist");
 
@@ -280,11 +281,13 @@ public class StarDistDetection extends Module {
                         obj.addPointsFromRoi(polygon, z);
                     } catch (IntegerOverflowException e) {
                     }
+                    obj.setT(t);
                 }
             } catch (InterruptedException | ExecutionException e) {
                 return Status.FAIL;
             }
         }
+    }
 
         workspace.addObjects(outputObjects);
 
