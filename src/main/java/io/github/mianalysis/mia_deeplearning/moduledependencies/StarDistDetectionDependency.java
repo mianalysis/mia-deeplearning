@@ -26,4 +26,9 @@ public class StarDistDetectionDependency extends Dependency {
     public Relationship getRelationship() {
         return Relationship.GREATER_THAN_OR_EQUAL_TO;
     }
+
+    @Override
+    public String getMessage() {
+        return "Please update StarDist dependency";
+    }
 }
