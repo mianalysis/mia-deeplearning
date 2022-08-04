@@ -145,36 +145,36 @@ public class StarDistDetection extends Module {
 
     File getModelFile(@Nullable HashMap<String, Object> paramsCNN) {
         switch ((String) parameters.getValue(MODEL_MODE)) {
-        case ModelModes.FROM_FILE:
-            return new File((String) parameters.getValue(MODEL_PATH));
+            case ModelModes.FROM_FILE:
+                return new File((String) parameters.getValue(MODEL_PATH));
 
-        case ModelModes.PRE_DEFINED:
-            StarDist2DModel model = null;
-            switch ((String) parameters.getValue(MODEL_NAME)) {
-            case ModelNames.DSB_2018:
-                model = MODELS.get(MODEL_DSB2018_PAPER);
-                break;
-            case ModelNames.VERSATILE_FLUORESCENT_NUCLEI:
-                model = MODELS.get(MODEL_DSB2018_HEAVY_AUGMENTATION);
-                break;
-            case ModelNames.VERSATILE_HE_NUCLEI:
-                model = MODELS.get(MODEL_HE_HEAVY_AUGMENTATION);
-                break;
-            }
+            case ModelModes.PRE_DEFINED:
+                StarDist2DModel model = null;
+                switch ((String) parameters.getValue(MODEL_NAME)) {
+                    case ModelNames.DSB_2018:
+                        model = MODELS.get(MODEL_DSB2018_PAPER);
+                        break;
+                    case ModelNames.VERSATILE_FLUORESCENT_NUCLEI:
+                        model = MODELS.get(MODEL_DSB2018_HEAVY_AUGMENTATION);
+                        break;
+                    case ModelNames.VERSATILE_HE_NUCLEI:
+                        model = MODELS.get(MODEL_HE_HEAVY_AUGMENTATION);
+                        break;
+                }
 
-            if (model.canGetFile()) {
-                try {
-                    paramsCNN.put("blockMultiple", model.sizeDivBy);
-                    paramsCNN.put("overlap", model.tileOverlap);
-                    return model.getFile();
-                } catch (IOException e) {
+                if (model.canGetFile()) {
+                    try {
+                        paramsCNN.put("blockMultiple", model.sizeDivBy);
+                        paramsCNN.put("overlap", model.tileOverlap);
+                        return model.getFile();
+                    } catch (IOException e) {
+                        MIA.log.writeWarning("Can't get StarDist model");
+                        return null;
+                    }
+                } else {
                     MIA.log.writeWarning("Can't get StarDist model");
                     return null;
                 }
-            } else {
-                MIA.log.writeWarning("Can't get StarDist model");
-                return null;
-            }
         }
 
         return null;
@@ -223,7 +223,7 @@ public class StarDistDetection extends Module {
         ImageJ ij = new ImageJ();
         Context context = MIA.ijService.context();
         DatasetService datasetService = (DatasetService) MIA.ijService.context().service("net.imagej.DatasetService");
-        
+
         // Initialising parameter sets
         HashMap<String, Object> paramsCNN = new HashMap<>();
         paramsCNN.put("normalizeInput", parameters.getValue(NORMALISE_INPUT));
@@ -250,44 +250,46 @@ public class StarDistDetection extends Module {
         paramsNMS.put("outputType", Opt.OUTPUT_POLYGONS);
 
         for (int t = 0; t < ipl.getNFrames(); t++) {
-        for (int z = 0; z < ipl.getNSlices(); z++) {
-            Module.writeProgressStatus((z + 1), ipl.getNSlices(), "slices", "StarDist");
+            for (int z = 0; z < ipl.getNSlices(); z++) {
+                Module.writeProgressStatus((z + 1), ipl.getNSlices(), "slices", "StarDist");
 
-            Image subs = ExtractSubstack.extractSubstack(image, "Subs", "1", String.valueOf(z + 1), "1");
-            ImgPlus img = subs.getImgPlus();            
-            DefaultDataset dataset = new DefaultDataset(context, img);
-            paramsCNN.put("input", dataset);
+                Image subs = ExtractSubstack.extractSubstack(image, "Subs", "1-end", String.valueOf(z + 1), String.valueOf(t + 1));
+                ImgPlus img = subs.getImgPlus();
+                DefaultDataset dataset = new DefaultDataset(context, img);
+                paramsCNN.put("input", dataset);
 
-            try {
-                Future<CommandModule> futureCNN = ij.command().run(de.csbdresden.csbdeep.commands.GenericNetwork.class,
-                        false, paramsCNN);
-                Dataset prediction = (Dataset) futureCNN.get().getOutput("output");
+                try {
+                    Future<CommandModule> futureCNN = ij.command().run(
+                            de.csbdresden.csbdeep.commands.GenericNetwork.class,
+                            false, paramsCNN);
+                    Dataset prediction = (Dataset) futureCNN.get().getOutput("output");
 
-                Pair<Dataset, Dataset> probAndDist = splitPrediction(prediction, datasetService);
-                Dataset probDS = probAndDist.getA();
-                Dataset distDS = probAndDist.getB();
-                paramsNMS.put("prob", probDS);
-                paramsNMS.put("dist", distDS);
+                    Pair<Dataset, Dataset> probAndDist = splitPrediction(prediction, datasetService);
+                    Dataset probDS = probAndDist.getA();
+                    Dataset distDS = probAndDist.getB();
+                    paramsNMS.put("prob", probDS);
+                    paramsNMS.put("dist", distDS);
 
-                Future<CommandModule> futureNMS = ij.command().run(de.csbdresden.stardist.StarDist2DNMS.class, false,
-                        paramsNMS);
-                Candidates polygons = (Candidates) futureNMS.get().getOutput("polygons");
-                List<Integer> indices = polygons.getWinner();
+                    Future<CommandModule> futureNMS = ij.command().run(de.csbdresden.stardist.StarDist2DNMS.class,
+                            false,
+                            paramsNMS);
+                    Candidates polygons = (Candidates) futureNMS.get().getOutput("polygons");
+                    List<Integer> indices = polygons.getWinner();
 
-                for (Integer idx : indices) {
-                    PolygonRoi polygon = polygons.getPolygonRoi(idx);
-                    Obj obj = outputObjects.createAndAddNewObject(VolumeType.QUADTREE);
-                    try {
-                        obj.addPointsFromRoi(polygon, z);
-                    } catch (IntegerOverflowException e) {
+                    for (Integer idx : indices) {
+                        PolygonRoi polygon = polygons.getPolygonRoi(idx);
+                        Obj obj = outputObjects.createAndAddNewObject(VolumeType.QUADTREE);
+                        try {
+                            obj.addPointsFromRoi(polygon, z);
+                        } catch (IntegerOverflowException e) {
+                        }
+                        obj.setT(t);
                     }
-                    obj.setT(t);
+                } catch (InterruptedException | ExecutionException e) {
+                    return Status.FAIL;
                 }
-            } catch (InterruptedException | ExecutionException e) {
-                return Status.FAIL;
             }
         }
-    }
 
         workspace.addObjects(outputObjects);
 
@@ -333,12 +335,12 @@ public class StarDistDetection extends Module {
         returnedParameters.add(parameters.getParameter(MODEL_SEPARATOR));
         returnedParameters.add(parameters.getParameter(MODEL_MODE));
         switch ((String) parameters.getValue(MODEL_MODE)) {
-        case ModelModes.FROM_FILE:
-            returnedParameters.add(parameters.getParameter(MODEL_PATH));
-            break;
-        case ModelModes.PRE_DEFINED:
-            returnedParameters.add(parameters.getParameter(MODEL_NAME));
-            break;
+            case ModelModes.FROM_FILE:
+                returnedParameters.add(parameters.getParameter(MODEL_PATH));
+                break;
+            case ModelModes.PRE_DEFINED:
+                returnedParameters.add(parameters.getParameter(MODEL_NAME));
+                break;
         }
 
         returnedParameters.add(parameters.getParameter(PREDICTION_SEPARATOR));
