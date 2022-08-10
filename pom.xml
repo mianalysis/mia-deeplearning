@@ -5,7 +5,7 @@
 
     <artifactId>MIA_DeepLearning</artifactId>
     <groupId>io.github.mianalysis</groupId>
-    <version>1.0.2</version>
+    <version>1.1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <properties>
@@ -46,14 +46,28 @@
         </dependency>
 
         <dependency>
-            <groupId>com.github.mianalysis</groupId>
+            <groupId>ome</groupId>
+            <artifactId>formats-bsd</artifactId>
+            <version>LATEST</version>
+            <scope>${scp}</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>net.imagej</groupId>
+            <artifactId>ij</artifactId>
+            <version>LATEST</version>
+            <scope>${scp}</scope>            
+        </dependency>
+
+        <dependency>
+            <!-- <groupId>com.github.mianalysis</groupId>
             <artifactId>mia</artifactId>
             <version>v1.0.0</version>
-            <scope>${scp}</scope>
-            <!-- <groupId>io.github.mianalysis</groupId>
-            <artifactId>mia</artifactId>
-            <version>0.21.3</version>
             <scope>${scp}</scope> -->
+            <groupId>io.github.mianalysis</groupId>
+            <artifactId>mia</artifactId>
+            <version>1.1.0-SNAPSHOT</version>
+            <scope>${scp}</scope>
         </dependency>
     </dependencies>
 
