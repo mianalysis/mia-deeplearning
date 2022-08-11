@@ -249,10 +249,10 @@ public class StarDistDetection extends Module {
         paramsNMS.put("verbose", false);
         paramsNMS.put("outputType", Opt.OUTPUT_POLYGONS);
 
+        int count = 0;
+        int total = ipl.getNFrames()*ipl.getNSlices();
         for (int t = 0; t < ipl.getNFrames(); t++) {
-            for (int z = 0; z < ipl.getNSlices(); z++) {
-                Module.writeProgressStatus((z + 1), ipl.getNSlices(), "slices", "StarDist");
-
+            for (int z = 0; z < ipl.getNSlices(); z++) {               
                 Image subs = ExtractSubstack.extractSubstack(image, "Subs", "1-end", String.valueOf(z + 1), String.valueOf(t + 1));
                 ImgPlus img = subs.getImgPlus();
                 DefaultDataset dataset = new DefaultDataset(context, img);
@@ -288,6 +288,9 @@ public class StarDistDetection extends Module {
                 } catch (InterruptedException | ExecutionException e) {
                     return Status.FAIL;
                 }
+
+                Module.writeProgressStatus(++count, total, "slices", "StarDist");
+                
             }
         }
 
