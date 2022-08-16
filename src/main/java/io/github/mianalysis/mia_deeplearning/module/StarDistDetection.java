@@ -11,8 +11,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.stream.IntStream;
 
-import com.drew.lang.annotations.Nullable;
-
+import org.jetbrains.annotations.Nullable;
 import org.scijava.Context;
 import org.scijava.Priority;
 import org.scijava.command.CommandModule;
@@ -30,11 +29,10 @@ import io.github.mianalysis.mia.module.Category;
 import io.github.mianalysis.mia.module.Module;
 import io.github.mianalysis.mia.module.Modules;
 import io.github.mianalysis.mia.module.images.transform.ExtractSubstack;
-import io.github.mianalysis.mia.object.Image;
 import io.github.mianalysis.mia.object.Obj;
 import io.github.mianalysis.mia.object.Objs;
-import io.github.mianalysis.mia.object.Status;
 import io.github.mianalysis.mia.object.Workspace;
+import io.github.mianalysis.mia.object.image.Image;
 import io.github.mianalysis.mia.object.parameters.BooleanP;
 import io.github.mianalysis.mia.object.parameters.ChoiceP;
 import io.github.mianalysis.mia.object.parameters.FilePathP;
@@ -49,6 +47,7 @@ import io.github.mianalysis.mia.object.refs.collections.MetadataRefs;
 import io.github.mianalysis.mia.object.refs.collections.ObjMeasurementRefs;
 import io.github.mianalysis.mia.object.refs.collections.ParentChildRefs;
 import io.github.mianalysis.mia.object.refs.collections.PartnerRefs;
+import io.github.mianalysis.mia.object.system.Status;
 import io.github.mianalysis.mia.object.units.TemporalUnit;
 import io.github.sjcross.sjcommon.exceptions.IntegerOverflowException;
 import io.github.sjcross.sjcommon.object.volume.SpatCal;
@@ -143,38 +142,38 @@ public class StarDistDetection extends Module {
         return "Implements the StarDist plugin to detect objects.  For more information on StarDist please see <a href=\"https://imagej.net/plugins/stardist\">https://imagej.net/plugins/stardist</a>.";
     }
 
-    File getModelFile(@Nullable HashMap<String, Object> paramsCNN) {
-        switch ((String) parameters.getValue(MODEL_MODE)) {
-        case ModelModes.FROM_FILE:
-            return new File((String) parameters.getValue(MODEL_PATH));
+    File getModelFile(@Nullable HashMap<String, Object> paramsCNN, Workspace workspace) {
+        switch ((String) parameters.getValue(MODEL_MODE,workspace)) {
+            case ModelModes.FROM_FILE:
+                return new File((String) parameters.getValue(MODEL_PATH,workspace));
 
-        case ModelModes.PRE_DEFINED:
-            StarDist2DModel model = null;
-            switch ((String) parameters.getValue(MODEL_NAME)) {
-            case ModelNames.DSB_2018:
-                model = MODELS.get(MODEL_DSB2018_PAPER);
-                break;
-            case ModelNames.VERSATILE_FLUORESCENT_NUCLEI:
-                model = MODELS.get(MODEL_DSB2018_HEAVY_AUGMENTATION);
-                break;
-            case ModelNames.VERSATILE_HE_NUCLEI:
-                model = MODELS.get(MODEL_HE_HEAVY_AUGMENTATION);
-                break;
-            }
+            case ModelModes.PRE_DEFINED:
+                StarDist2DModel model = null;
+                switch ((String) parameters.getValue(MODEL_NAME,workspace)) {
+                    case ModelNames.DSB_2018:
+                        model = MODELS.get(MODEL_DSB2018_PAPER);
+                        break;
+                    case ModelNames.VERSATILE_FLUORESCENT_NUCLEI:
+                        model = MODELS.get(MODEL_DSB2018_HEAVY_AUGMENTATION);
+                        break;
+                    case ModelNames.VERSATILE_HE_NUCLEI:
+                        model = MODELS.get(MODEL_HE_HEAVY_AUGMENTATION);
+                        break;
+                }
 
-            if (model.canGetFile()) {
-                try {
-                    paramsCNN.put("blockMultiple", model.sizeDivBy);
-                    paramsCNN.put("overlap", model.tileOverlap);
-                    return model.getFile();
-                } catch (IOException e) {
+                if (model.canGetFile()) {
+                    try {
+                        paramsCNN.put("blockMultiple", model.sizeDivBy);
+                        paramsCNN.put("overlap", model.tileOverlap);
+                        return model.getFile();
+                    } catch (IOException e) {
+                        MIA.log.writeWarning("Can't get StarDist model");
+                        return null;
+                    }
+                } else {
                     MIA.log.writeWarning("Can't get StarDist model");
                     return null;
                 }
-            } else {
-                MIA.log.writeWarning("Can't get StarDist model");
-                return null;
-            }
         }
 
         return null;
@@ -209,80 +208,89 @@ public class StarDistDetection extends Module {
     @Override
     protected Status process(Workspace workspace) {
         // Getting input image
-        String inputImageName = parameters.getValue(INPUT_IMAGE);
+        String inputImageName = parameters.getValue(INPUT_IMAGE,workspace);
+        String outputObjectsName = parameters.getValue(OUTPUT_OBJECTS,workspace);
+
         Image image = workspace.getImages().get(inputImageName);
         ImagePlus ipl = image.getImagePlus();
         SpatCal cal = SpatCal.getFromImage(ipl);
         int nFrames = ipl.getNFrames();
         double frameInterval = ipl.getCalibration().frameInterval;
 
-        // Creating output object collection
-        String outputObjectsName = parameters.getValue(OUTPUT_OBJECTS);
+        // Creating output object collection        
         Objs outputObjects = new Objs(outputObjectsName, cal, nFrames, frameInterval, TemporalUnit.getOMEUnit());
 
         ImageJ ij = new ImageJ();
         Context context = MIA.ijService.context();
         DatasetService datasetService = (DatasetService) MIA.ijService.context().service("net.imagej.DatasetService");
-        
+
         // Initialising parameter sets
         HashMap<String, Object> paramsCNN = new HashMap<>();
-        paramsCNN.put("normalizeInput", parameters.getValue(NORMALISE_INPUT));
-        paramsCNN.put("percentileBottom", parameters.getValue(PERCENTILE_LOW));
-        paramsCNN.put("percentileTop", parameters.getValue(PERCENTILE_HIGH));
+        paramsCNN.put("normalizeInput", parameters.getValue(NORMALISE_INPUT,workspace));
+        paramsCNN.put("percentileBottom", parameters.getValue(PERCENTILE_LOW,workspace));
+        paramsCNN.put("percentileTop", parameters.getValue(PERCENTILE_HIGH,workspace));
         paramsCNN.put("clip", false);
-        paramsCNN.put("nTiles", parameters.getValue(NUMBER_OF_TILES));
+        paramsCNN.put("nTiles", parameters.getValue(NUMBER_OF_TILES,workspace));
         paramsCNN.put("blockMultiple", 64);
         paramsCNN.put("overlap", 64);
         paramsCNN.put("batchSize", 1);
         paramsCNN.put("showProgressDialog", false);
 
-        File modelFile = getModelFile(paramsCNN);
+        File modelFile = getModelFile(paramsCNN,workspace);
         if (modelFile == null)
             return Status.FAIL;
         paramsCNN.put("modelFile", modelFile);
 
         HashMap<String, Object> paramsNMS = new HashMap<>();
-        paramsNMS.put("probThresh", parameters.getValue(PROB_THRESHOLD));
-        paramsNMS.put("nmsThresh", parameters.getValue(OVERLAP_THRESHOLD));
-        paramsNMS.put("excludeBoundary", parameters.getValue(BOUNDARY_EXCLUSION));
+        paramsNMS.put("probThresh", parameters.getValue(PROB_THRESHOLD,workspace));
+        paramsNMS.put("nmsThresh", parameters.getValue(OVERLAP_THRESHOLD,workspace));
+        paramsNMS.put("excludeBoundary", parameters.getValue(BOUNDARY_EXCLUSION,workspace));
         paramsNMS.put("roiPosition", Opt.ROI_POSITION_STACK);
         paramsNMS.put("verbose", false);
         paramsNMS.put("outputType", Opt.OUTPUT_POLYGONS);
 
-        for (int z = 0; z < ipl.getNSlices(); z++) {
-            Module.writeProgressStatus((z + 1), ipl.getNSlices(), "slices", "StarDist");
+        int count = 0;
+        int total = ipl.getNFrames()*ipl.getNSlices();
+        for (int t = 0; t < ipl.getNFrames(); t++) {
+            for (int z = 0; z < ipl.getNSlices(); z++) {               
+                Image subs = ExtractSubstack.extractSubstack(image, "Subs", "1-end", String.valueOf(z + 1), String.valueOf(t + 1));
+                ImgPlus img = subs.getImgPlus();
+                DefaultDataset dataset = new DefaultDataset(context, img);
+                paramsCNN.put("input", dataset);
 
-            Image subs = ExtractSubstack.extractSubstack(image, "Subs", "1", String.valueOf(z + 1), "1");
-            ImgPlus img = subs.getImgPlus();            
-            DefaultDataset dataset = new DefaultDataset(context, img);
-            paramsCNN.put("input", dataset);
+                try {
+                    Future<CommandModule> futureCNN = ij.command().run(
+                            de.csbdresden.csbdeep.commands.GenericNetwork.class,
+                            false, paramsCNN);
+                    Dataset prediction = (Dataset) futureCNN.get().getOutput("output");
 
-            try {
-                Future<CommandModule> futureCNN = ij.command().run(de.csbdresden.csbdeep.commands.GenericNetwork.class,
-                        false, paramsCNN);
-                Dataset prediction = (Dataset) futureCNN.get().getOutput("output");
+                    Pair<Dataset, Dataset> probAndDist = splitPrediction(prediction, datasetService);
+                    Dataset probDS = probAndDist.getA();
+                    Dataset distDS = probAndDist.getB();
+                    paramsNMS.put("prob", probDS);
+                    paramsNMS.put("dist", distDS);
 
-                Pair<Dataset, Dataset> probAndDist = splitPrediction(prediction, datasetService);
-                Dataset probDS = probAndDist.getA();
-                Dataset distDS = probAndDist.getB();
-                paramsNMS.put("prob", probDS);
-                paramsNMS.put("dist", distDS);
+                    Future<CommandModule> futureNMS = ij.command().run(de.csbdresden.stardist.StarDist2DNMS.class,
+                            false,
+                            paramsNMS);
+                    Candidates polygons = (Candidates) futureNMS.get().getOutput("polygons");
+                    List<Integer> indices = polygons.getWinner();
 
-                Future<CommandModule> futureNMS = ij.command().run(de.csbdresden.stardist.StarDist2DNMS.class, false,
-                        paramsNMS);
-                Candidates polygons = (Candidates) futureNMS.get().getOutput("polygons");
-                List<Integer> indices = polygons.getWinner();
-
-                for (Integer idx : indices) {
-                    PolygonRoi polygon = polygons.getPolygonRoi(idx);
-                    Obj obj = outputObjects.createAndAddNewObject(VolumeType.QUADTREE);
-                    try {
-                        obj.addPointsFromRoi(polygon, z);
-                    } catch (IntegerOverflowException e) {
+                    for (Integer idx : indices) {
+                        PolygonRoi polygon = polygons.getPolygonRoi(idx);
+                        Obj obj = outputObjects.createAndAddNewObject(VolumeType.QUADTREE);
+                        try {
+                            obj.addPointsFromRoi(polygon, z);
+                        } catch (IntegerOverflowException e) {
+                        }
+                        obj.setT(t);
                     }
+                } catch (InterruptedException | ExecutionException e) {
+                    return Status.FAIL;
                 }
-            } catch (InterruptedException | ExecutionException e) {
-                return Status.FAIL;
+
+                Module.writeProgressStatus(++count, total, "slices", "StarDist");
+                
             }
         }
 
@@ -329,13 +337,13 @@ public class StarDistDetection extends Module {
 
         returnedParameters.add(parameters.getParameter(MODEL_SEPARATOR));
         returnedParameters.add(parameters.getParameter(MODEL_MODE));
-        switch ((String) parameters.getValue(MODEL_MODE)) {
-        case ModelModes.FROM_FILE:
-            returnedParameters.add(parameters.getParameter(MODEL_PATH));
-            break;
-        case ModelModes.PRE_DEFINED:
-            returnedParameters.add(parameters.getParameter(MODEL_NAME));
-            break;
+        switch ((String) parameters.getValue(MODEL_MODE,null)) {
+            case ModelModes.FROM_FILE:
+                returnedParameters.add(parameters.getParameter(MODEL_PATH));
+                break;
+            case ModelModes.PRE_DEFINED:
+                returnedParameters.add(parameters.getParameter(MODEL_NAME));
+                break;
         }
 
         returnedParameters.add(parameters.getParameter(PREDICTION_SEPARATOR));
