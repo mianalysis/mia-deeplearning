@@ -5,7 +5,7 @@
 
     <artifactId>MIA_DeepLearning</artifactId>
     <groupId>io.github.mianalysis</groupId>
-    <version>1.1.0-SNAPSHOT</version>
+    <version>1.1.0</version>
     <packaging>jar</packaging>
 
     <properties>
@@ -60,14 +60,14 @@
         </dependency>
 
         <dependency>
-            <!-- <groupId>com.github.mianalysis</groupId>
+            <groupId>com.github.mianalysis</groupId>
             <artifactId>mia</artifactId>
-            <version>v1.0.0</version>
-            <scope>${scp}</scope> -->
-            <groupId>io.github.mianalysis</groupId>
+            <version>v1.1.0</version>
+            <scope>${scp}</scope>
+            <!-- <groupId>io.github.mianalysis</groupId>
             <artifactId>mia</artifactId>
             <version>1.1.0-SNAPSHOT</version>
-            <scope>${scp}</scope>
+            <scope>${scp}</scope> -->
         </dependency>
     </dependencies>
 
