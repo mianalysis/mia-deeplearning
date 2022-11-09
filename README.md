@@ -1,6 +1,6 @@
 About MIA-DeepLearning
 ------------------
-DEPRECATION NOTE: MIA-DeepLearning modules have now been incorporated directly into the main [MIA](https://github.com/mianalysis/MIA) plugin (since MIA v1.2.0).  These modules will only appear in MIA if the StarDist update site is enabled.
+DEPRECATION NOTE: MIA-DeepLearning modules have now been incorporated directly into the main [MIA](https://github.com/mianalysis/MIA) plugin (since MIA v1.2.0).  These modules will only appear in MIA if the CSBDeep and StarDist update sites are enabled.
 
 MIA-DeepLearning is a [MIA](https://github.com/mianalysis/MIA) plugin, which adds additional modules that rely on the [CSBDeep](https://imagej.net/plugins/csbdeep) Fiji plugin for deep learning.  The latest release includes the following modules:
 - "StarDist detection" will apply [StarDist](https://imagej.net/plugins/stardist) to each slice of an input image and output the detected objects.
